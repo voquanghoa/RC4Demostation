@@ -24,10 +24,17 @@ namespace Client
 			clientService = new ClientService("127.0.0.1", 8000);
 
 			clientService.OnError += ClientService_OnError;
-			clientService.ReceiveMessage += ClientService_ReceiveMessage;
-
+			clientService.ReceivedMessage += ClientService_ReceivedMessage;
+			clientService.SentMessage += ClientService_SentMessage;
 			clientService.StartListen();
 			Text += " - " + clientService.LocalPort;
+		}
+
+		private void ClientService_SentMessage(string originMessage, string encryptedMessage)
+		{
+			txtLog.AppendText($"\r\nMessage: {originMessage}\r\n");
+			txtLog.AppendText($"Sent: {encryptedMessage}\r\n");
+			txtLog.AppendText($"----------------------------\r\n");
 		}
 
 		private void ClientService_OnError(string message)
@@ -40,14 +47,20 @@ namespace Client
 					Close();
 				}
 			};
-
+			
 			Invoke(action);
 		}
 
-		private void ClientService_ReceiveMessage(string message)
+		private void ClientService_ReceivedMessage(string originMessage, string descriptedMessage)
 		{
-			Action action = () => txtLog.AppendText($"\r\nReceived: {message}\r\n");
-			Invoke(action);
+			Action appendText = () => 
+			{
+
+				txtLog.AppendText($"\r\nReceved: {originMessage}\r\n");
+				txtLog.AppendText($"Message: {descriptedMessage}\r\n");
+				txtLog.AppendText($"----------------------------\r\n");
+			};
+			Invoke(appendText);
 		}
 
 		private void btSend_Click(object sender, EventArgs e)
@@ -55,7 +68,6 @@ namespace Client
 			if (txtMessage.TextLength > 0)
 			{
 				clientService.Send(txtMessage.Text);
-				txtLog.AppendText($"\r\nSend: {txtMessage.Text}\r\n");
 				txtMessage.Text = string.Empty;
 			}
 		}

@@ -9,7 +9,9 @@ using System.Threading.Tasks;
 
 namespace Client
 {
-	public delegate void ReceiveMessage(string message);
+	public delegate void RecevedMessage(string originMessage, string decryptedMessage);
+	public delegate void SentMessage(string originMessage, string encryptedMessage);
+
 	public delegate void OnError(string message);
 
 	public class ClientService
@@ -20,7 +22,8 @@ namespace Client
 		private TcpClient client;
 		private RC4Stream stream;
 		private Thread thread;
-		public event ReceiveMessage ReceiveMessage;
+		public event RecevedMessage ReceivedMessage;
+		public event SentMessage SentMessage;
 		public event OnError OnError;
 
 		public int LocalPort
@@ -62,7 +65,8 @@ namespace Client
 			{
 				try
 				{
-					ReceiveMessage?.Invoke(stream.Read());
+					var readTuple = stream.Read();
+					ReceivedMessage?.Invoke(ConvertByteArrayToString(readTuple.Item1), readTuple.Item2);
 				}
 				catch (ThreadAbortException) { }
 				catch (Exception ex)
@@ -75,7 +79,8 @@ namespace Client
 
 		public void Send(string message)
 		{
-			stream.Send(message);
+			var readTuple = stream.Send(message);
+			SentMessage?.Invoke(readTuple.Item1, ConvertByteArrayToString(readTuple.Item2));
 		}
 
 		public void Stop()
@@ -84,6 +89,11 @@ namespace Client
 			{
 				thread.Abort();
 			}
+		}
+
+		private string ConvertByteArrayToString(byte[] data)
+		{
+			return string.Join(" ",data.Select(x => x.ToString("X2")).ToArray());
 		}
 	}
 }
